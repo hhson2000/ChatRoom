@@ -20,12 +20,15 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [online, setOnline] = useState(0);
   const [userList, setUserList] = useState<string[]>([]);
+  const [connected, setConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socket = io();
+    const socket = io({ transports: ["websocket", "polling"] });
     socketRef.current = socket;
+    socket.on("connect", () => setConnected(true));
+    socket.on("disconnect", () => setConnected(false));
     socket.on("message", (msg: Message) => setMessages((prev) => [...prev, msg]));
     socket.on("online", (count: number) => setOnline(count));
     socket.on("userList", (users: string[]) => setUserList(users));
@@ -37,7 +40,7 @@ export default function Home() {
   }, [messages]);
 
   const join = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !connected) return;
     socketRef.current?.emit("join", name.trim());
     setJoined(true);
   };
@@ -61,7 +64,9 @@ export default function Home() {
               onPressEnter={join}
               size="large"
             />
-            <Button type="primary" size="large" onClick={join}>Vào</Button>
+            <Button type="primary" size="large" onClick={join} disabled={!connected}>
+              {connected ? "Vào" : "Đang kết nối..."}
+            </Button>
           </Space.Compact>
         </Card>
       </div>
@@ -71,7 +76,7 @@ export default function Home() {
   return (
     <Layout style={{ height: "100vh" }}>
       <Header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ color: "#fff", fontSize: 18 }} strong>💬 Chat Room</Text>
+        <Text style={{ color: "#fff", fontSize: 18 }} strong>💬 Nấu xói Room</Text>
         <Popover
           trigger="click"
           title="Đang online"
